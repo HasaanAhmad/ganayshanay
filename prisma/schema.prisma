@@ -1,0 +1,157 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+ 
+generator client {
+  provider = "prisma-client-js"
+}
+ 
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  ownedRooms    Room[]        @relation("RoomOwner")
+  joinedRooms   RoomMember[]
+  queuedSongs   QueuedSong[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+
+
+model Room {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  ownerId     String
+
+  // Relations
+  owner         User           @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       RoomMember[]
+  songQueue     SongQueue?
+  currentSong   QueuedSong?    @relation("CurrentlyPlaying", fields: [currentSongId], references: [id])
+  currentSongId String?        @unique
+
+  @@map("rooms")
+}
+
+model RoomMember {
+  id       String   @id @default(cuid())
+  joinedAt DateTime @default(now())
+  role     MemberRole @default(MEMBER)
+
+
+  userId String
+  roomId String
+
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+  @@map("room_members")
+}
+
+model SongQueue {
+  id        String   @id @default(cuid())
+  isPlaying Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  roomId String @unique
+
+  // Relations
+  room  Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  songs QueuedSong[]
+
+  @@map("song_queues")
+}
+
+model QueuedSong {
+  id          String   @id @default(cuid())
+  youtubeId   String
+  title       String
+  duration    Int
+  position    Int
+
+
+  // Foreign Keys
+  queueId   String
+  addedById String
+
+  // Relations
+  queue         SongQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  addedBy       User      @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  currentlyInRoom Room?   @relation("CurrentlyPlaying")
+
+  @@unique([queueId, position])
+  @@map("queued_songs")
+}
+
+
+
+// Enums
+enum MemberRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+
+
+ 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@unique([provider, providerAccountId])
+}
+ 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+ 
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@unique([identifier, token])
+}
+ 
