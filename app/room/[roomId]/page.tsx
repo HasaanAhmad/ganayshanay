@@ -38,7 +38,7 @@ const RoomPage = async ({ params }: { params: Promise<{ roomId: string }> }) => 
                             <p className="text-gray-400 mt-2">{room.description}</p>
                         </div>
                         <div className="flex gap-4">
-                            <NextSongButton roomId={room.id} />
+                    {session.user.email=="hasaanahmad10023@gmail.com" && <NextSongButton roomId={room.id} />}
                             <AddSongDialog roomId={room.id} />
                         </div>
                     </div>
